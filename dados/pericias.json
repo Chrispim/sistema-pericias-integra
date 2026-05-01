@@ -1,0 +1,22 @@
+{
+  "data_verificacao": "2026-05-01T21:40:00",
+  "total_movimentacoes": 22,
+  "total_processos": 9,
+  "nota": "Planilha Excel nao acessivel nesta execucao. Execute processar_pericias.py manualmente para completar o cruzamento.",
+  "excel_lido": false,
+  "urgentes": [
+    {"cnj": "0003454-21.2016.8.08.0004", "tribunal": "TJES", "autor": "verificar planilha", "vara": "0004=Anchieta", "status": "verificar planilha", "pendente": "verificar planilha", "qtd_notificacoes": 3, "ultima_data": "2026-05-01"},
+    {"cnj": "5004093-24.2021.8.08.0021", "tribunal": "TJES", "autor": "verificar planilha", "vara": "0021=Guarapari", "status": "verificar planilha", "pendente": "verificar planilha", "qtd_notificacoes": 3, "ultima_data": "2026-04-30"},
+    {"cnj": "0000783-88.2017.8.08.0004", "tribunal": "TJES", "autor": "verificar planilha", "vara": "0004=Anchieta", "status": "verificar planilha", "pendente": "verificar planilha", "qtd_notificacoes": 5, "ultima_data": "2026-04-30"},
+    {"cnj": "0600276-54.2024.6.08.0019", "tribunal": "TRE-ES", "autor": "verificar planilha", "vara": "0019=TRE-ES", "status": "verificar planilha", "pendente": "verificar planilha", "qtd_notificacoes": 5, "ultima_data": "2026-04-29"}
+  ],
+  "atencao": [],
+  "informativos": [
+    {"cnj": "0004037-40.2015.8.08.0004", "tribunal": "TJES", "autor": "verificar planilha", "vara": "0004=Anchieta", "status": "verificar planilha", "pendente": "verificar planilha", "qtd_notificacoes": 1, "ultima_data": "2026-05-01"},
+    {"cnj": "5001026-68.2022.8.08.0004", "tribunal": "TJES", "autor": "verificar planilha", "vara": "0004=Anchieta", "status": "verificar planilha", "pendente": "verificar planilha", "qtd_notificacoes": 1, "ultima_data": "2026-04-29"},
+    {"cnj": "5000931-38.2022.8.08.0004", "tribunal": "TJES", "autor": "verificar planilha", "vara": "0004=Anchieta", "status": "verificar planilha", "pendente": "verificar planilha", "qtd_notificacoes": 2, "ultima_data": "2026-04-29"},
+    {"cnj": "0002045-10.2016.8.08.0004", "tribunal": "TJES", "autor": "verificar planilha", "vara": "0004=Anchieta", "status": "verificar planilha", "pendente": "verificar planilha", "qtd_notificacoes": 1, "ultima_data": "2026-04-27"},
+    {"cnj": "0000932-26.2013.8.08.0004", "tribunal": "TJES", "autor": "verificar planilha", "vara": "0004=Anchieta", "status": "verificar planilha", "pendente": "verificar planilha", "qtd_notificacoes": 1, "ultima_data": "2026-04-27"}
+  ],
+  "sem_correspondencia": []
+}
