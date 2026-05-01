@@ -1,0 +1,26 @@
+# Dados sensiveis (nunca versionar)
+*.env
+*.key
+secrets/
+credenciais/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+
+# Sistema operacional
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Logs
+*.log
+logs/
+
+# Temporarios
+tmp/
+temp/
+*.tmp
