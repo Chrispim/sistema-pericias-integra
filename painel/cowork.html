@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<script type="application/json" id="cowork-artifact-meta">
+{
+  "name": "Verificar Intimacoes Pericias",
+  "schemaVersion": 1,
+  "description": "Painel intimações TJES/TRE-ES com verificação Gmail e botão Iniciar Perícia — funciona com ou sem e-mails",
+  "mcpTools": ["mcp__11009236-e0bb-426a-b55d-715523d2bd41__search_threads"],
+  "mcpServerNames": ["Gmail"]
+}
+</script>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Perícias · Intimações</title>
+<style>
+:root{color-scheme:light}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI',Arial,sans-serif;background:#f0f2f6;padding:14px;color:#1a1a2e;font-size:13px}
+
+.header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.header h1{font-size:15px;font-weight:700;color:#1a3a5c}
+.header .sub{font-size:11px;color:#999;margin-top:1px}
+.badge-total{background:#1a3a5c;color:#fff;font-size:10px;font-weight:700;padding:3px 9px;border-radius:20px}
+
+/* Botões principais */
+.btn-row{display:flex;gap:8px;margin-bottom:14px}
+.btn-verificar{
+  flex:1;padding:12px;border:none;border-radius:10px;
+  background:#1a3a5c;color:#fff;font-size:13px;font-weight:700;
+  cursor:pointer;display:flex;align-items:center;justify-content:center;
+  gap:7px;transition:background .2s
+}
+.btn-verificar:hover{background:#0f2540}
+.btn-verificar:disabled{background:#7a9abf;cursor:not-allowed}
+.btn-nova-pericia{
+  padding:12px 14px;border:2px solid #1a3a5c;border-radius:10px;
+  background:#fff;color:#1a3a5c;font-size:13px;font-weight:700;
+  cursor:pointer;display:flex;align-items:center;gap:6px;
+  transition:all .2s;white-space:nowrap
+}
+.btn-nova-pericia:hover{background:#e8f0fb}
+
+.spinner{width:16px;height:16px;border:2px solid rgba(255,255,255,.4);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;display:none}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* Cards */
+.secao{background:#fff;border-radius:10px;box-shadow:0 1px 4px rgba(0,0,0,.07);margin-bottom:10px;overflow:hidden}
+.secao-header{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:1px solid #f0f0f0}
+.secao-titulo{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px}
+.s-urgente .secao-titulo{color:#dc3545}
+.s-atencao .secao-titulo{color:#fd7e14}
+.s-info .secao-titulo{color:#6c757d}
+.secao-count{font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;background:#f0f0f0;color:#555}
+
+.processo-card{padding:10px 14px;border-bottom:1px solid #f5f5f5;display:flex;flex-direction:column;gap:4px}
+.processo-card:last-child{border-bottom:none}
+.card-top{display:flex;align-items:flex-start;justify-content:space-between;gap:8px}
+.card-info{flex:1;min-width:0}
+.cnj{font-family:monospace;font-size:10px;color:#888;word-break:break-all}
+.autor{font-weight:600;font-size:12px;margin:2px 0;color:#1a1a2e}
+.detalhe{font-size:11px;color:#888;display:flex;gap:10px;flex-wrap:wrap;margin-top:1px}
+.pendente{font-size:11px;color:#444;margin-top:3px;padding:4px 8px;background:#fff8e1;border-radius:5px;border-left:2px solid #f59e0b}
+.badge{display:inline-block;padding:1px 6px;border-radius:20px;font-size:9px;font-weight:700;background:#eee;color:#555;white-space:nowraw;margin-left:4px}
+.badge-urgente{background:#fde8ea;color:#c92a2a}
+.badge-notif{background:#e8f0fb;color:#1a3a5c}
+
+.btn-pericia{
+  flex-shrink:0;padding:7px 11px;border:none;border-radius:7px;
+  background:#e8f0fb;color:#1a3a5c;font-size:11px;font-weight:700;
+  cursor:pointer;transition:background .15s,transform .1s;white-space:nowrap
+}
+.btn-pericia:hover{background:#cfdff8;transform:translateY(-1px)}
+
+.estado-vazio{background:#fff;border-radius:10px;padding:24px;text-align:center;color:#aaa;font-size:12px;box-shadow:0 1px 4px rgba(0,0,0,.06)}
+.estado-erro{border-left:3px solid #dc3545;color:#842029;text-align:left}
+
+/* Links */
+.link-pje{display:flex;align-items:center;justify-content:center;gap:6px;margin-top:12px;font-size:12px;color:#1a3a5c;text-decoration:none;padding:9px;background:#e8f0fa;border-radius:9px}
+.link-pje:hover{background:#d0e0f4}
+.alerta{background:#fff8e1;border-left:3px solid #f59e0b;border-radius:7px;padding:9px 12px;font-size:11px;color:#666;margin-top:10px;line-height:1.5}
+.rodape{font-size:10px;color:#bbb;text-align:center;margin-top:8px}
+
+/* ════ MODAL ════ */
+.overlay{display:none;position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,.45);backdrop-filter:blur(2px);align-items:flex-end;justify-content:center}
+.overlay.open{display:flex}
+.modal{background:#fff;border-radius:16px 16px 0 0;width:100%;max-width:480px;max-height:92vh;overflow-y:auto;padding:20px 18px 28px;box-shadow:0 -4px 24px rgba(0,0,0,.15);animation:slideUp .22s ease}
+@keyframes slideUp{from{transform:translateY(40px);opacity:0}to{transform:translateY(0);opacity:1}}
+.modal-handle{width:40px;height:4px;background:#ddd;border-radius:px ;margin:0 auto 16px}
+.modal-titulo{font-size:15px;font-weight:700;color:#1a3a5c;margin-bottom:12px}
+
+/* Campo CNJ manual */
+.cnj-manual-wrap{margin-bottom:14px}
+.campo-label{font-size:11px;font-weight:700;color:#555;margin-bottom:5px;display:block}
+.campo-input{width:100%;padding:9px 10px;border:1px solid #d0d9e5;border-radius:8px;font-size:11px;font-family:monospace;color:#333;background:#fafbfd;outline:none;transition:border-color .15s}
+.campo-input:focus{border-color:#1a3a5c;background:#fff}
+.campo-hint{font-size:10px;color:#aaa;margin-top:4px;line-height:1.4}
+
+.info-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px}
+.info-cell{background:#f7f9fc;border-radius:7px;padding:8px 10px}
+.info-label{font-size:9px;text-transform:uppercase;letter-spacing:.5px;color:#aaa;font-weight:700}
+.info-val{font-size:11px;color:#333;margin-top:2px;font-weight:600}
+
+.label-secao{font-size:11px;font-weight:700;color:#555;margin-bottom:8px;text-transform:uppercase;letter-spacing:.4px}
+.tipo-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px}
+.tipo-card{border:2px solid #e8edf2;border-radius:9px;padding:10px;cursor:pointer;transition:border-color .15s,background .15s;text-align:left}
+.tipo-card:hover{border-color:#a0bce0;background:#f5f9ff}
+.tipo-card.sel{border-color:#1a3a5c;background:#e8f0fb}
+.tipo-card input[type=radio]{display:none}
+.tipo-icon{font-size:18px;margin-bottom:4px}
+.tipo-nome{font-size:11px;font-weight:700;color:#1a3a5c}
+.tipo-desc{font-size:10px;color:#888;margin-top:2px;line-height:1.3}
+
+.obs-input{width:100%;padding:9px 10px;border:1px solid #d0d9e5;border-radius:8px;font-size:12px;color:#333;background:#fafbfd;resize:vertical;min-height:56px;outline:none;font-family:inherit;transition:border-color .15s;margin-bottom:16px}
+.obs-input:focus{border-color:#1a3a5c;background:#fff}
+
+.modal-actions{display:flex;gap:8px;margin-top:4px}
+.btn-cancelar{flex:1;padding:12px;border:1px solid #ddd;border-radius:9px;background:#fff;color:#666;font-size:13px;font-weight:700;cursor:pointer}
+.btn-cancelar:hover{background:#f5f5f5}
+.btn-iniciar{flex:2;padding:12px;border:none;border-radius:9px;background:#1a3a5c;color:#fff;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px}
+.btn-iniciar:hover{background:#0f2540}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <h1>⚖️ Perícias · Intimações</h1>
+    <div class="sub">TJES · TRE-ES · Integra Contabilidade</div>
+  </div>
+  <span class="badge-total" id="badge-total">—</span>
+</div>
+
+<!-- Botões superiores -->
+<div class="btn-row">
+  <button class="btn-verificar" id="btn" onclick="verificar()">
+    <div class="spinner" id="spinner"></div>
+    <span id="btn-txt">⚡ Verificar Intimações</span>
+  </button>
+  <button class="btn-nova-pericia" onclick="abrirManual()">➕ Nova Perícia</button>
+</div>
+
+<div id="resultado"></div>
+
+<a class="link-pje" href="https://pje.tjes.jus.br" target="_blank">🌐 Portal PJe TJES</a>
+<div class="alerta">ℹ️ O PJe Push apenas <strong>notifica</strong> a movimentação. Leia o conteúdo no portal do tribunal.</div>
+
+<!-- ════ MODAL ════ -->
+<div class="overlay" id="overlay" onclick="fecharOverlay(event)">
+<div class="modal">
+  <div class="modal-handle"></div>
+  <div class="modal-titulo">⚖️ Iniciar Perícia</div>
+
+  <!-- CNJ manual (visível só quando aberto sem card) -->
+  <div class="cnj-manual-wrap" id="cnj-manual-wrap">
+    <label class="campo-label">Número CNJ do processo</label>
+    <input class="campo-input" id="campo-cnj" type="text"
+           placeholder="0000000-00.0000.8.08.0000"
+           oninput="this.value=this.value.replace(/[^0-9.\-]/g,'')">
+    <div class="campo-hint">Digite o CNJ completo para gerar o prompt estruturado.</div>
+  </div>
+
+  <!-- Info do processo (visível quando aberto via card) -->
+  <div class="info-grid" id="m-info-grid" style="display:none"></div>
+
+  <div class="label-secao">Tipo de Documento</div>
+  <div class="tipo-grid">
+    <label class="tipo-card sel" onclick="selTipo(this,'laudo')">
+      <input type="radio" name="tipo" value="laudo" checked>
+      <div class="tipo-icon">📋</div>
+      <div class="tipo-nome">Laudo Pericial</div>
+      <div class="tipo-desc">Relatório completo com análise e conclusão técnica</div>
+    </label>
+    <label class="tipo-card" onclick="selTipo(this,'quesitos')">
+      <input type="radio" name="tipo" value="quesitos">
+      <div class="tipo-icon">❓</div>
+      <div class="tipo-nome">Resposta a Quesitos</div>
+      <div class="tipo-desc">Respostas numeradas por quesito de cada parte</div>
+    </label>
+    <label class="tipo-card" onclick="selTipo(this,'roteiro')">
+      <input type="radio" name="tipo" value="roteiro">
+      <div class="tipo-icon">✅</div>
+      <div class="tipo-nome">Roteiro de Análise</div>
+      <div class="tipo-desc">Checklist do que verificar antes do laudo</div>
+    </label>
+    <label class="tipo-card" onclick="selTipo(this,'resumo')">
+      <input type="radio" name="tipo" value="resumo">
+      <div class="tipo-icon">📰</div>
+      <div class="tipo-nome">Resumo do Processo</div>
+      <div class="tipo-desc">Síntese para retomada rápida de processo parado</div>
+    </label>
+  </div>
+
+  <label class="campo-label">Pasta do processo no Drive</label>
+  <input class="campo-input" id="campo-pasta" type="text" style="margin-bottom:8px"
+         value="G:\Meu Drive\Pessoal\Pericia Contabil\Processos\">
+  <div class="campo-hint" style="margin-bottom:14px">
+    Subpastas: <code>pecas_processuais\</code> · <code>trabalho_pericial\</code> · <code>laudo_final\</code>
+  </div>
+
+  <label class="campo-label">Contexto adicional (opcional)</label>
+  <textarea class="obs-input" id="campo-obs"
+    placeholder="Ex: Laudo anterior entregue em 03/2025, faltam quesitos do assistente técnico da ré..."></textarea>
+
+  <div class="modal-actions">
+    <button class="btn-cancelar" onclick="fecharModal()">Cancelar</button>
+    <button class="btn-iniciar" onclick="iniciarPericia()">⚖️ Iniciar no Chat</button>
+  </div>
+</div>
+</div>
+
+<script>
+const GMAIL = 'mcp__11009236-e0bb-426a-b55d-715523d2bd41__search_threads';
+const BASE  = 'G:\\Meu Drive\\Pessoal\\Pericia Contabil\\Processos';
+let proc = null, tipo = 'laudo';
+
+// ── VERIFICAR E-MAILS ──
+async function verificar(){
+  const btn=document.getElementById('btn'), sp=document.getElementById('spinner'), txt=document.getElementById('btn-txt');
+  btn.disabled=true; sp.style.display='block'; txt.textContent='Verificando...';
+  try{
+    const r = await window.cowork.callMcpTool(GMAIL,{query:'from:nao-responda@tjes.jus.br OR from:no-reply-pje@tse.jus.br newer_than:7d',pageSize:50});
+    const dados = classificar(agrupar(r?.threads||[]));
+    renderResultados(dados);
+    localStorage.setItem('p_cache',JSON.stringify({ts:Date.now(),dados}));
+    txt.textContent='✅ Atualizado';
+    setTimeout(()=>{txt.textContent='⚡ Verificar Intimações';btn.disabled=false;},3000);
+  }catch(e){
+    sp.style.display='none'; txt.textContent='⚡ Verificar Intimações'; btn.disabled=false;
+    document.getElementById('resultado').innerHTML=`<div class="estado-vazio estado-erro">❌ ${e.message||e}</div>`;
+  }
+  sp.style.display='none';
+}
+
+function agrupar(threads){
+  const m={};
+  for(const t of threads) for(const msg of (t.messages||[])){
+    const s=msg.subject||'', match=s.match(/(\d{7}-\d{2}\.\d{4}\.\d\.\d{2}\.\d{4})/);
+    if(!match) continue;
+    const cnj=match[1];
+    if(!m[cnj]) m[cnj]={cnj,tribunal:(msg.sender||'').includes('tse.jus.br')?'TRE-ES':'TJES',
+      qtd:0,ultima_data:msg.date?.slice(0,10)||'—',
+      vara:varaFromCnj(cnj),autor:'— verificar planilha —',status:'— verificar planilha —',pendente:null};
+    m[cnj].qtd++;
+    if(msg.date>=(m[cnj]._d||'')) {m[cnj]._d=msg.date; m[cnj].ultima_data=msg.date.slice(0,10);}
+  }
+  return Object.values(m);
+}
+function varaFromCnj(cnj){
+  if(cnj.includes('.6.08.')) return 'TRE-ES';
+  const c=cnj.slice(-4);
+  return {['0004']:'Anchieta',['0021']:'Guarapari',['0069']:'Marataízes'}[c]||`Vara ${c}`;
+}
+function classificar(lista){
+  const u=[],a=[],i=[];
+  for(const p of lista){
+    const s=(p.status||'').toLowerCase();
+    if(p.qtd>=3||s.includes('laudo pendente')||s.includes('quesita')) u.push(p);
+    else if(s.includes('laudo entregue')||s.includes('pendente recebimento')||s.includes('faltam certid')) a.push(p);
+    else i.push(p);
+  }
+  return{urgentes:u,atencao:a,informativos:i,total:lista.reduce((s,p)=>s+p.qtd,0),processos:lista.length};
+}
+
+// ── RENDER ──
+function renderResultados(d){
+  document.getElementById('badge-total').textContent=`${d.processos} processo${d.processos!==1?'s':''}`;
+  const el=document.getElementById('resultado');
+  if(!d.processos){el.innerHTML='<div class="estado-vazio">📭 Nenhuma movimentação nos últimos 7 dias.</div>';return;}
+  el.innerHTML=
+    renderSec(d.urgentes,'s-urgente','🔴','Ação Urgente')+
+    renderSec(d.atencao,'s-atencao','🟠','Verificar')+
+    renderSec(d.informativos,'s-info','🟡','Informativo')+
+    `<div class="rodape">${d.total} notif. · ${new Date().toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})}</div>`;
+}
+function renderSec(lista,cls,ic,tit){
+  if(!lista?.length) return '';
+  return `<div class="secao ${cls}" style="margin-bottom:10px">
+    <div class="secao-header"><span class="secao-titulo">${ic} ${tit}</span><span class="secao-count">${lista.length}</span></div>
+    ${lista.map(card).join('')}</div>`;
+}
+function card(p){
+  const nb=p.qtd>1?`<span class="badge badge-notif">${p.qtd}×</span>`:'';
+  const ub=p.qtd>=3?`<span class="badge badge-urgente">Alta freq.</span>`:'';
+  const pj=JSON.stringify(p).replace(/'/g,"&#39;");
+  return `<div class="processo-card"><div class="card-top"><div class="card-info">
+    <div class="cnj">${p.cnj}<span class="badge">${p.tribunal}</span>${nb}${ub}</div>
+    <div class="autor">${(p.autor||'—').substring(0,50)}</div>
+    <div class="detalhe"><span>📍 ${p.vara||'—'}</span><span>🏷 ${p.status||'—'}</span><span>📅 ${p.ultima_data||'—'}</span></div>
+    ${p.pendente?`<div class="pendente">→ ${p.pendente}</div>`:''}
+  </div>
+  <button class="btn-pericia" onclick='abrirCard(${pj})'>⚖️ Perícia</button>
+  </div></div>`;
+}
+
+// ── MODAL — abrir via card ──
+function abrirCard(p){
+  proc=p; tipo='laudo'; resetModal();
+  document.getElementById('cnj-manual-wrap').style.display='none';
+  const grid=document.getElementById('m-info-grid');
+  grid.style.display='grid';
+  grid.innerHTML=[
+    {l:'CNJ',v:p.cnj},{l:'Tribunal',v:p.tribunal},
+    {l:'Vara',v:p.vara||'—'},{l:`Notif. (7d)`,v:`${p.qtd}× · ${p.ultima_data}`},
+    {l:'Status',v:p.status||'—'},{l:'Pendente',v:p.pendente||'—'}
+  ].map(c=>`<div class="info-cell"><div class="info-label">${c.l}</div><div class="info-val">${c.v}</div></div>`).join('');
+  const cnj_safe=p.cnj.replace(/[\/\\:*?"<>|]/g,'-');
+  document.getElementById('campo-pasta').value=`${BASE}\\${cnj_safe}`;
+  document.getElementById('overlay').classList.add('open');
+}
+
+// ── MODAL — abrir manual (sem e-mail) ──
+function abrirManual(){
+  proc=null; tipo='laudo'; resetModal();
+  document.getElementById('cnj-manual-wrap').style.display='block';
+  document.getElementById('m-info-grid').style.display='none';
+  document.getElementById('campo-cnj').value='';
+  document.getElementById('campo-pasta').value=`${BASE}\\`;
+  document.getElementById('overlay').classList.add('open');
+  setTimeout(()=>document.getElementById('campo-cnj').focus(),250);
+}
+
+function resetModal(){
+  document.querySelectorAll('.tipo-card').forEach(c=>c.classList.remove('sel'));
+  document.querySelectorAll('.tipo-card')[0].classList.add('sel');
+  tipo='laudo';
+  document.getElementById('campo-obs').value='';
+}
+
+function selTipo(el,t){
+  document.querySelectorAll('.tipo-card').forEach(c=>c.classList.remove('sel'));
+  el.classList.add('sel'); tipo=t;
+}
+function fecharModal(){ document.getElementById('overlay').classList.remove('open'); proc=null; }
+function fecharOverlay(e){ if(e.target===document.getElementById('overlay')) fecharModal(); }
+
+// ── GERAR PROMPT E DISPARAR ──
+const TIPOS={
+  laudo:{nome:'Laudo Pericial Contábil',
+    inst:`Gere um **Laudo Pericial Contábil completo em .docx**, conforme CPC/2015 Arts. 464–480 e NBC PP 01 do CFC:\n1. Identificação das partes e do perito\n2. Objeto da perícia e síntese dos fatos\n3. Metodologia\n4. Análise dos documentos encontrados\n5. Respostas fundamentadas aos quesitos (juízo, autor e réu)\n6. Conclusão técnica\n7. Data, local, assinatura`},
+  quesitos:{nome:'Resposta a Quesitos',
+    inst:`Gere um **.docx com respostas numeradas a cada quesito**. Para cada um:\n- Transcreva o quesito\n- Responda de forma objetiva e técnica\n- Cite o documento que embasa a resposta\nSiga CPC/2015 Art. 473 e NBC PP 01.`},
+  roteiro:{nome:'Roteiro de Análise (Checklist)',
+    inst:`Gere um **.docx com roteiro detalhado**:\n- Documentos a obter (quais já estão disponíveis)\n- Cálculos a realizar\n- Questões jurídicas relevantes\n- Prazo estimado por etapa\n- Pendências com partes ou cartório`},
+  resumo:{nome:'Resumo Executivo',
+    inst:`Gere um **.docx de resumo executivo** para retomada:\n- Cronologia dos atos processuais\n- Objeto da perícia e tese de cada parte\n- Documentos já analisados vs. pendentes\n- Status atual e próximo passo recomendado`},
+};
+
+function iniciarPericia(){
+  const t=TIPOS[tipo];
+  let cnj,vara,autor,status,pendente,qtd,ultima;
+
+  if(proc){
+    cnj=proc.cnj; vara=proc.vara; autor=proc.autor;
+    status=proc.status; pendente=proc.pendente; qtd=proc.qtd; ultima=proc.ultima_data;
+  } else {
+    cnj=document.getElementById('campo-cnj').value.trim();
+    if(!cnj){document.getElementById('campo-cnj').focus();return;}
+    vara='—'; autor='—'; status='—'; pendente='—'; qtd='—'; ultima='—';
+  }
+
+  const pasta=document.getElementById('campo-pasta').value.trim();
+  const obs=document.getElementById('campo-obs').value.trim();
+  const cnj_safe=cnj.replace(/[\/\\:*?"<>|]/g,'-');
+  const destino=tipo==='laudo'||tipo==='quesitos'
+    ? `${pasta}\\laudo_final\\${t.nome.replace(/ /g,'_')}_${cnj_safe.substring(0,20)}.docx`
+    : `${pasta}\\trabalho_pericial\\${t.nome.replace(/ /g,'_')}_${cnj_safe.substring(0,20)}.docx`;
+
+  const prompt=`## ⚖️ INICIAR PERÍCIA — ${t.nome}
+
+**Processo:** ${cnj}
+**Tribunal/Vara:** ${vara}
+**Requerente:** ${autor}
+**Status:** ${status} | **Pendência:** ${pendente||'—'}
+**Notificações 7d:** ${qtd} (último: ${ultima})${obs?`\n**Contexto do perito:** ${obs}`:''}
+
+---
+### 📁 Estrutura de arquivos
+\`\`\`
+${pasta}\\
+  ├── pecas_processuais\\    ← PDFs/docs baixados do PJe
+  ├── trabalho_pericial\\    informe quais criar e o que colocar em cada uma.
+
+---
+### 🎯 Tarefa
+${t.inst}
+
+**Execute:**
+1. Liste arquivos em \`${pasta}\` (varrer subpastas)
+2. Leia as peças processuais disponíveis
+3. Verifique rascunhos em \`trabalho_pericial\\\` — aproveite o que já bpastas)
+2. Leia as peças processuais disponíveis
+3. Verifique rascunhos em \`trabalho_pericial\\\` — aproveite o que já existe
+4. Gere o documento e salve em: \`${destino}\`
+5. Apresente resumo: o que foi encontrado, o que foi gerado, pendências críticas`;
+
+  fecharModal();
+  window.sendPrompt(prompt);
+}
+
+// Restaurar cache
+window.addEventListener('DOMContentLoaded',()=>{
+  try{const c=JSON.parse(localStorage.getItem('p_cache')||'{}');if(c.dados) renderResultados(c.dados);}catch(e){}
+});
+</script>
+</body>
+</html>
