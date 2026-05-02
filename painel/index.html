@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Integra · Painel de Perícias</title>
+<style>
+/* ══════════════════════════════════════
+   INTEGRA CONTABILIDADE & PERÍCIAS
+   Painel standalone — funciona em qualquer navegador
+   Configurar: editar a variável CONFIG abaixo
+══════════════════════════════════════ */
+:root{
+  --azul:#1a3a5c; --azul-light:#e8f0fb; --azul-mid:#2a5298;
+  --vermelho:#dc3545; --laranja:#fd7e14; --cinza:#6c757d;
+  --bg:#f0f2f6; --card:#fff; --borda:#e8edf2;
+  color-scheme:light
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI',Arial,sans-serif;background:var(--bg);color:#1a1a2e;font-size:13px;min-height:100vh}
+
+/* Topbar */
+.topbar{background:var(--azul);color:#fff;padding:12px 20px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;box-shadow:0 2px 8px rgba(0,0,0,.2)}
+.topbar h1{font-size:15px;font-weight:700;letter-spacing:.3px}
+.topbar .sub{font-size:10px;opacity:.7;margin-top:1px}
+.topbar-right{display:flex;align-items:center;gap:10px}
+.badge-data{font-size:10px;opacity:.8;font-style:italic}
+
+/* Layout */
+.container{max-width:780px;margin:0 auto;padding:16px}
+
+/* Barra de ações */
+.action-bar{display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap}
+.btn-reload{
+  padding:10px 16px;border:none;border-radius:9px;
+  background:var(--azul);color:#fff;font-size:12px;font-weight:700;
+  cursor:pointer;display:flex;align-items:center;gap:6px;transition:background .2s
+}
+.btn-reload:hover{background:#0f2540}
+.btn-nova{
+  padding:10px 16px;border:2px solid var(--azul);border-radius:9px;
+  background:#fff;color:var(--azul);font-size:12px;font-weight:700;
+  cursor:pointer;display:flex;align-items:center;gap:6px;transition:all .2s
+}
+.btn-nova:hover{background:var(--azul-light)}
+.search-box{
+  flex:1;min-width:180px;padding:9px 12px;border:1px solid var(--borda);
+  border-radius:9px;font-size:12px;outline:none;transition:border-color .2s
+}
+.search-box:focus{border-color:var(--azul)}
+
+/* Stats */
+.stats-row{display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap}
+.stat-card{flex:1;min-width:100px;background:var(--card);border-radius:10px;padding:12px 14px;box-shadow:0 1px 4px rgba(0,0,0,.07);text-align:center}
+.stat-num{font-size:24px;font-weight:700;line-height:1}
+.stat-label{font-size:10px;color:#888;margin-top:3px;text-transform:uppercase;letter-spacing:.4px}
+.stat-urgente .stat-num{color:var(--vermelho)}
+.stat-atencao .stat-num{color:var(--laranja)}
+.stat-info .stat-num{color:var(--cinza)}
+.stat-total .stat-num{color:var(--azul)}
+
+/* Seções */
+.secao{background:var(--card);border-radius:11px;box-shadow:0 1px 4px rgba(0,0,0,.07);margin-bottom:12px;overflow:hidden}
+.secao-header{display:flex;align-items:center;justify-content:space-between;padding:11px 16px;border-bottom:1px solid #f0f0f0;cursor:pointer;user-select:none}
+.secao-titulo{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;display:flex;align-items:center;gap:7px}
+.s-urgente .secao-titulo{color:var(--vermelho)}
+.s-atencao .secao-titulo{color:var(--laranja)}
+.s-info .secao-titulo{color:var(--cinza)}
+.secao-count{font-size:10px;font-weight:700;padding:2px 9px;border-radius:20px;background:#f0f0f0;color:#555}
+.chevron{font-size:10px;color:#aaa;transition:transform .2s}
+.secao.collapsed .chevron{transform:rotate(-90deg)}
+.secao.collapsed .secao-body{display:none}
+
+/* Cards de processo */
+.processo-card{padding:12px 16px;border-bottom:1px solid #f5f5f5;display:flex;gap:12px;align-items:flex-start}
+.processo-card:last-child{border-bottom:none}
+.card-body{flex:1;min-width:0}
+.cnj{font-family:monospace;font-size:10px;color:#888;word-break:break-all}
+.autor{font-weight:600;font-size:13px;margin:3px 0;color:#1a1a2e}
+.detalhe{font-size:11px;color:#888;display:flex;gap:12px;flex-wrap:wrap}
+.badge{display:inline-block;padding:1px 6px;border-radius:20px;font-size:9px;font-weight:700;background:#eee;color:#555;white-space:nowraw;margin-left:4px}
+.badge-trib{background:#e8f0fb;color:#1a3a5c}
+.badge-notif{background:#fff3cd;color:#856404}
+.badge-urgente{background:#fde8ea;color:#c92a2a}
+.pendente-tag{font-size:11px;color:#444;margin-top:5px;padding:4px 8px;background:#fff8e1;border-radius:5px;border-left:2px solid #f59e0b;display:inline-block}
+.status-tag{font-size:10px;padding:2px 8px;border-radius:20px;display:inline-block;margin-top:4px}
+.status-urgente{background:#fde8ea;color:#c92a2a}
+.status-atencao{background:#fff3cd;color:#856404}
+.status-ok{background:#d1f5e0;color:#155724}
+
+.btn-pericia-card{
+  flex-shrink:0;padding:8px 13px;border:none;border-radius:8px;
+  background:var(--azul-light);color:var(--azul);font-size:11px;font-weight:700;
+  cursor:pointer;transition:background .15s,transform .1s;white-space:nowrap;
+  display:flex;flex-direction:column;align-items:center;gap:2px
+}
+.btn-pericia-card:hover{background:#cfdff8;transform:translateY(-1px)}
+.btn-pericia-card span{font-size:18px}
+
+/* Vazio */
+.vazio{text-align:center;padding:32px;color:#bbb;font-size:12px}
+.vazio .icon{font-size:32px;margin-bottom:8px}
+
+/* Alerta config */
+.alerta-config{background:#e8f4fd;border-left:3px solid #3498db;border-radius:7px;padding:10px 14px;font-size:11px;color:#1a5276;margin-bottom:14px;line-height:1.6}
+.alerta-config code{background:#fff;padding:1px 5px;border-radius:3px;font-size:10px;border:1px solid #bee3f8}
+
+/* ════ MODAL ════ */
+.overlay{display:none;position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.5);backdrop-filter:blur(3px);align-items:flex-end;justify-content:center}
+.overlay.open{display:flex}
+.modal{background:#fff;border-radius:18px 18px 0 0;width:100%;max-width:520px;max-height:90vh;overflow-y:auto;padding:22px 20px 32px;box-shadow:0 -6px 32px rgba(0,0,0,.18);animation:up .22s ease}
+@keyframes up{from{transform:translateY(50px);opacity:0}to{transform:translateY(0);opacity:1}}
+.m-handle{width:36px;height:4px;background:#ddd;border-radius:2px;margin:0 auto 16px}
+.m-title{font-size:16px;font-weight:700;color:var(--azul);margin-bottom:14px}
+
+.field-label{font-size:11px;font-weight:700;color:#555;margin-bottom:5px;display:block;text-transform:uppercase;letter-spacing:.3px}
+.field-input{width:100%;padding:10px 12px;border:1px solid var(--borda);border-radius:8px;font-size:12px;color:#333;background:#fafbfd;outline:none;transition:border-color .2s;font-family:inherit}
+.field-input:focus{border-color:var(--azul);background:#fff}
+.field-mono{font-family:monospace}
+.field-hint{font-size:10px;color:#aaa;margin-top:4px;margin-bottom:12px;line-height:1.5}
+
+.info-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px}
+.info-cell{background:#f7f9fc;border-radius:7px;padding:9px 11px}
+.info-cell-label{font-size:9px;text-transform:uppercase;letter-spacing:.5px;color:#aaa;font-weight:700}
+.info-cell-val{font-size:11px;color:#333;margin-top:2px;font-weight:600;word-break:break-all}
+
+.tipo-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px}
+.tipo-card{border:2px solid var(--borda);border-radius:9px;padding:11px;cursor:pointer;transition:all .15s;user-select:none}
+.tipo-card:hover{border-color:#a0bce0;background:#f5f9ff}
+.tipo-card.sel{border-color:var(--azul);background:var(--azul-light)}
+.tipo-card input[type=radio]{display:none}
+.tipo-icon{font-size:20px;margin-bottom:5px}
+.tipo-nome{font-size:11px;font-weight:700;color:var(--azul)}
+.tipo-desc{font-size:10px;color:#888;margin-top:2px;line-height:1.3}
+
+textarea.field-input{resize:vertical;min-height:60px;margin-bottom:14px}
+
+.modal-footer{display:flex;gap:8px;margin-top:4px}
+.btn-cancel{flex:1;padding:12px;border:1px solid #ddd;border-radius:9px;background:#fff;color:#666;font-size:13px;font-weight:700;cursor:pointer}
+.btn-cancel:hover{background:#f5f5f5}
+.btn-copy{flex:2;padding:12px;border:none;border-radius:9px;background:var(--azul);color:#fff;font-size:13px;font-weight:700;cursor:pointer;transition:background .2s}
+.btn-copy:hover{background:#0f2540}
+
+.toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:#1a3a5c;color:#fff;padding:10px 20px;border-radius:9px;font-size:12px;font-weight:700;opacity:0;transition:opacity .3s;z-index:999;pointer-events:none}
+.toast.show{opacity:1}
+
+/* Responsivo */
+@media(max-width:520px){
+  .stats-row{gap:6px}
+  .stat-card{padding:10px}
+  .stat-num{font-size:20px}
+}
+</style>
+</head>
+<body>
+
+<!-- ══ TOPBAR ══ -->
+<div class="topbar">
+  <div>
+    <div class="topbar h1" style="font-size:15px;font-weight:700">⚖️ Integra · Painel de Perícias</div>
+    <div class="sub">Integra Contabilidade & Perícias · TJES · TRE-ES</div>
+  </div>
+  <div class="topbar-right">
+    <span class="badge-data" id="badge-data">—</span>
+  </div>
+</div>
+
+<div class="container">
+
+  <!-- Alerta de configuração (some depois de configurar) -->
+  <div class="alerta-config" id="alerta-cfg">
+    ⚙️ <strong>Configuração:</strong> Para carregar dados reais, edite a variável <code>CONFIG.jsonUrl</code> no início do script com o link do JSON exportado.
+    Enquanto isso, o painel exibe dados de exemplo.
+  </div>
+
+  <!-- Ações -->
+  <div class="action-bar">
+    <button class="btn-reload" onclick="carregar()">🔄 Atualizar</button>
+    <button class="btn-nova" onclick="abrirManual()">➕ Nova Perícia</button>
+    <input class="search-box" type="text" id="busca" placeholder="🔍 Buscar por CNJ, parte ou vara..." oninput="filtrar()">
+  </div>
+
+  <!-- Stats -->
+  <div class="stats-row">
+    <div class="stat-card stat-total"><div class="stat-num" id="s-total">0</div><div class="stat-label">Processos</div></div>
+    <div class="stat-card stat-urgente"><div class="stat-num" id="s-urgente">0</div><div class="stat-label">Urgente</div></div>
+    <div class="stat-card stat-atencao"><div class="stat-num" id="s-atencao">0</div><div class="stat-label">Atenção</div></div>
+    <div class="stat-card stat-info"><div class="stat-num" id="s-info">0</div><div class="stat-label">Informativo</div></div>
+  </div>
+
+  <!-- Resultados -->
+  <div id="resultado"></div>
+
+  <div style="text-align:center;font-size:10px;color:#ccc;margin-top:16px;padding-bottom:20px">
+    Integra Contabilidade & Perícias · Painel interno · Atualizado pelo agente Claude
+  </div>
+</div>
+
+<!-- ══ MODAL ══ -->
+<div class="overlay" id="overlay" onclick="fecharOverlay(event)">
+<div class="modal">
+  <div class="m-handle"></div>
+  <div class="m-title">⚖️ Iniciar Perícia</div>
+
+  <div id="m-manual-wrap">
+    <label class="field-label">Número CNJ do processo</label>
+    <input class="field-input field-mono" id="m-cnj-input" type="text" placeholder="0000000-00.0000.8.08.0000" style="margin-bottom:4px">
+    <div class="field-hint">Preencha o CNJ para identificar o processo na solicitação.</div>
+  </div>
+  <div class="info-grid" id="m-info-grid" style="display:none"></div>
+
+  <label class="field-label" style="margin-bottom:8px">Tipo de Documento</label>
+  <div class="tipo-grid">
+    <label class="tipo-card sel" onclick="selTipo(this,'laudo')">
+      <input type="radio" name="tipo" value="laudo" checked>
+      <div class="tipo-icon">📋</div><div class="tipo-nome">Laudo Pericial</div>
+      <div class="tipo-desc">Relatório completo com análise contábil e conclusão</div>
+    </label>
+    <label class="tipo-card" onclick="selTipo(this,'quesitos')">
+      <input type="radio" name="tipo" value="quesitos">
+      <div class="tipo-icon">❓</div><div class="tipo-nome">Resposta a Quesitos</div>
+      <div class="tipo-desc">Respostas numeradas aos quesitos das partes</div>
+    </label>
+    <label class="tipo-card" onclick="selTipo(this,'roteiro')">
+      <input type="radio" name="tipo" value="roteiro">
+      <div class="tipo-icon">✅</div><div class="tipo-nome">Roteiro de Análise</div>
+      <div class="tipo-desc">Checklist do que verificar antes do laudo</div>
+    </label>
+    <label class="tipo-card" onclick="selTipo(this,'resumo')">
+      <input type="radio" name="tipo" value="resumo">
+      <div class="tipo-icon">📰</div><div class="tipo-nome">Resumo do Processo</div>
+      <div class="tipo-desc">Síntese para retomada rápida de processo parado</div>
+    </label>
+  </div>
+
+  <label class="field-label">Pasta do processo</label>
+  <input class="field-input field-mono" id="m-pasta" style="margin-bottom:4px"
+         value="G:\Meu Drive\Pessoal\Pericia Contabil\Processos\">
+  <div class="field-hint" style="margin-bottom:12px">
+    Subpastas esperadas: <code>pecas_processuais\</code> · <code>trabalho_pericial\</code> · <code>laudo_final\</code>
+  </div>
+
+  <label class="field-label">Contexto adicional (opcional)</label>
+  <textarea class="field-input" id="m-obs" placeholder="Ex: Laudo anterior entregue em 03/2025, faltam quesitos do assistente técnico..."></textarea>
+
+  <div class="modal-footer">
+    <button class="btn-cancel" onclick="fecharModal()">Cancelar</button>
+    <button class="btn-copy" onclick="copiarPrompt()">📋 Copiar Prompt para o Claude</button>
+  </div>
+</div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ══════════════════════════════════════════════
+//  ⚙️ CONFIGURAÇÃO — edite aqui
+// ══════════════════════════════════════════════
+const CONFIG = {
+  // URL do JSON gerado pelo agente (exemplo: link público do Google Drive ou servidor)
+  jsonUrl: '',   // ex: 'https://seuservidor.com/api/pericias.json'
+  // Nome do escritório (aparece na topbar)
+  escritorio: 'Integra Contabilidade & Perícias',
+};
+
+// ══════════════════════════════════════════════
+//  DADOS DE EXEMPLO (usados quando jsonUrl está vazio)
+// ══════════════════════════════════════════════
+const DADOS_DEMO = {
+  data_verificacao: new Date().toISOString(),
+  total_movimentacoes: 21,
+  total_processos: 9,
+  urgentes: [
+    {cnj:'0000783-88.2017.8.08.0004',tribunal:'TJES',vara:'Anchieta',autor:'— verificar planilha —',status:'Quesitação suplementar',pendente:'Responder quesitos',qtd_notificacoes:4,ultima_data:'2026-04-30'},
+    {cnj:'0600276-54.2024.6.08.0019',tribunal:'TRE-ES',vara:'TRE-ES',autor:'— verificar planilha —',status:'Laudo pendente',pendente:'Elaborar laudo',qtd_notificacoes:5,ultima_data:'2026-04-29'},
+    {cnj:'0003454-21.2016.8.08.0004',tribunal:'TJES',vara:'Anchieta',autor:'— verificar planilha —',status:'— verificar planilha —',pendente:null,qtd_notificacoes:3,ultima_data:'2026-05-01'},
+    {cnj:'5004093-24.2021.8.08.0021',tribunal:'TJES',vara:'Guarapari',autor:'— verificar planilha —',status:'— verificar planilha —',pendente:null,qtd_notificacoes:3,ultima_data:'2026-04-30'},
+  ],
+  atencao: [],
+  informativos: [
+    {cnj:'0004037-40.2015.8.08.0004',tribunal:'TJES',vara:'Anchieta',autor:'— verificar planilha —',status:'Processo concluído',pendente:null,qtd_notificacoes:1,ultima_data:'2026-05-01'},
+    {cnj:'5000931-38.2022.8.08.0004',tribunal:'TJES',vara:'Anchieta',autor:'— verificar planilha —',status:'— verificar planilha —',pendente:null,qtd_notificacoes:2,ultima_data:'2026-04-29'},
+    {cnj:'5001026-68.2022.8.08.0004',tribunal:'TJES',vara:'Anchieta',autor:'— verificar planilha —',status:'— verificar planilha —',pendente:null,qtd_notificacoes:1,ultima_data:'2026-04-29'},
+    {cnj:'0002045-10.2016.8.08.0004',tribunal:'TJES',vara:'Anchieta',autor:'— verificar planilha —',status:'— verificar planilha —',pendente:null,qtd_notificacoes:1,ultima_data:'2026-04-27'},
+    {cnj:'0000932-26.2013.8.08.0004',tribunal:'TJES',vara:'Anchieta',autor:'— verificar planilha —',status:'— verificar planilha —',pendente:null,qtd_notificacoes:1,ultima_data:'2026-04-27'},
+  ],
+  sem_correspondencia:[]
+};
+
+// ══════════════════════════════════════════════
+//  ESTADO
+// ══════════════════════════════════════════════
+let dados = null, proc = null, tipo = 'laudo';
+
+// ══════════════════════════════════════════════
+//  CARREGAR DADOS
+// ══════════════════════════════════════════════
+async function carregar(){
+  if(!CONFIG.jsonUrl){
+    dados = DADOS_DEMO;
+    document.getElementById('alerta-cfg').style.display='block';
+    render(dados);
+    return;
+  }
+  document.getElementById('alerta-cfg').style.display='none';
+  try{
+    const r = await fetch(CONFIG.jsonUrl+'?t='+Date.now());
+    if(!r.ok) throw new Error(`HTTP ${r.status}`);
+    dados = await r.json();
+    render(dados);
+  }catch(e){
+    document.getElementById('resultado').innerHTML=`<div class="vazio"><div class="icon">⚠️</div>Não foi possível carregar: ${e.message}</div>`;
+  }
+}
+
+// ══════════════════════════════════════════════
+//  RENDER
+// ══════════════════════════════════════════════
+function render(d){
+  const todos=[...(d.urgentes||[]),...(d.atencao||[]),...(d.informativos||[])];
+  document.getElementById('s-total').textContent   = todos.length;
+  document.getElementById('s-urgente').textContent = (d.urgentes||[]).length;
+  document.getElementById('s-atencao').textContent = (d.atencao||[]).length;
+  document.getElementById('s-info').textContent    = (d.informativos||[]).length;
+  if(d.data_verificacao){
+    const dt=new Date(d.data_verificacao);
+    document.getElementById('badge-data').textContent=
+      'Atualizado: '+dt.toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
+  }
+  const el=document.getElementById('resultado');
+  if(!todos.length){el.innerHTML='<div class="vazio"><div class="icon">📭</div>Nenhum processo encontrado.</div>';return;}
+  el.innerHTML=
+    renderSec(d.urgentes||[],'s-urgente','🔴','Ação Urgente')+
+    renderSec(d.atencao||[],'s-atencao','🟠','Verificar')+
+    renderSec(d.informativos||[],'s-info','🟡','Informativo');
+}
+
+function renderSec(lista,cls,ic,tit){
+  if(!lista.length) return '';
+  return `<div class="secao ${cls}" style="margin-bottom:12px">
+    <div class="secao-header" onclick="toggleSec(this.parentElement)">
+      <div class="secao-titulo">${ic} ${tit}</div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <span class="secao-count">${lista.length}</span>
+        <span class="chevron">▼</span>
+      </div>
+    </div>
+    <div class="secao-body">${lista.map(cardHtml).join('')}</div>
+  </div>`;
+}
+function toggleSec(el){el.classList.toggle('collapsed')}
+
+function cardHtml(p){
+  const notif=p.qtd_notificacoes>1?`<span class="badge badge-notif">${p.qtd_notificacoes}× notif.</span>`:'';
+  const urg=p.qtd_notificacoes>=3?`<span class="badge badge-urgente">Alta freq.</span>`:'';
+  const pj=JSON.stringify(p).replace(/'/g,"&#39;");
+  return `<div class="processo-card" data-search="${(p.cnj+' '+(p.autor||'')+' '+(p.vara||'')).toLowerCase()}">
+    <div class="card-body">
+      <div class="cnj">${p.cnj}<span class="badge badge-trib">${p.tribunal}</span>${notif}${urg}</div>
+      <div class="autor">${(p.autor||'— verificar planilha —').substring(0,60)}</div>
+      <div class="detalhe">
+        <span>📍 ${p.vara||'—'}</span>
+        <span>📅 ${p.ultima_data||'—'}</span>
+        ${p.status&&p.status!=='— verificar planilha —'?`<span>🏷 ${p.status}</span>`:''}
+      </div>
+      ${p.pendente?`<span class="pendente-tag">→ ${p.pendente}</span>`:''}
+    </div>
+    <button class="btn-pericia-card" onclick='abrirCard(${pj})'>
+      <span>⚖️</span>Perícia
+    </button>
+  </div>`;
+}
+
+// ══════════════════════════════════════════════
+//  BUSCA
+// ══════════════════════════════════════════════
+function filtrar(){
+  const q=document.getElementById('busca').value.toLowerCase();
+  document.querySelectorAll('.processo-card').forEach(el=>{
+    el.style.display=(!q||el.dataset.search.includes(q))?'flex':'none';
+  });
+}
+
+// ══════════════════════════════════════════════
+//  MODAL
+// ══════════════════════════════════════════════
+const BASE='G:\\Meu Drive\\Pessoal\\Pericia Contabil\\Processos';
+
+function abrirCard(p){
+  proc=p; resetModal();
+  document.getElementById('m-manual-wrap').style.display='none';
+  const g=document.getElementById('m-info-grid');
+  g.style.display='grid';
+  g.innerHTML=[
+    {l:'CNJ',v:p.cnj},{l:'Tribunal',v:p.tribunal},
+    {l:'Vara',v:p.vara||'—'},{l:'Notif. 7d',v:`${p.qtd_notificacoes||'—'}× · ${p.ultima_data}`},
+    {l:'Status',v:p.status||'—'},{l:'Pendente',v:p.pendente||'—'}
+  ].map(c=>`<div class="info-cell"><div class="info-cell-label">${c.l}</div><div class="info-cell-val">${c.v}</div></div>`).join('');
+  const safe=p.cnj.replace(/[\/\\:*?"<>|]/g,'-');
+  document.getElementById('m-pasta').value=`${BASE}\\${safe}`;
+  document.getElementById('overlay').classList.add('open');
+}
+function abrirManual(){
+  proc=null; resetModal();
+  document.getElementById('m-manual-wrap').style.display='block';
+  document.getElementById('m-info-grid').style.display='none';
+  document.getElementById('m-cnj-input').value='';
+  document.getElementById('m-pasta').value=`${BASE}\\`;
+  document.getElementById('overlay').classList.add('open');
+  setTimeout(()=>document.getElementById('m-cnj-input').focus(),250);
+}
+function resetModal(){
+  document.querySelectorAll('.tipo-card').forEach(c=>c.classList.remove('sel'));
+  document.querySelectorAll('.tipo-card')[0].classList.add('sel');
+  tipo='laudo'; document.getElementById('m-obs').value='';
+}
+function selTipo(el,t){
+  document.querySelectorAll('.tipo-card').forEach(c=>c.classList.remove('sel'));
+  el.classList.add('sel'); tipo=t;
+}
+function fecharModal(){document.getElementById('overlay').classList.remove('open');proc=null;}
+function fecharOverlay(e){if(e.target===document.getElementById('overlay'))fecharModal();}
+
+// ══════════════════════════════════════════════
+//  GERAR E COPIAR PROMPT
+// ══════════════════════════════════════════════
+const TIPOS={
+  laudo:{nome:'Laudo Pericial Contábil',
+    inst:`Gere um **Laudo Pericial Contábil completo em .docx**, conforme CPC/2015 Arts. 464–480 e NBC PP 01:\n1. Identificação das partes e perito\n2. Objeto e síntese dos fatos\n3. Metodologia\n4. Análise dos documentos encontrados\n5. Respostas aos quesitos (juãzo, autor, réu)\n6. Conclusão técnica\n7. Data, local, assinatura`},
+  quesitos:{nome:'Resposta a Quesitos',
+    inst:`Gere **.docx com respostas numeradas** a cada quesito:\n- Transcreva o quesito\n- Responda objetivamente com embasamento técnico\n- Cite o documento de suporte\nSiga CPC/2015 Art. 473 e NBC PP 01.`},
+  roteiro:{nome:'Roteiro de Análise',
+    inst:`Gere **.docx com roteiro/checklist**:\n- Documentos a obter (quais já estão disponíveis)\n- Cálculos a realizar\n- Questões jurídicas relevantes\n- Prazo estimado por etapa\n- Pendências com partes ou cartório`},
+  resumo:{nome:'Resumo Executivo',
+    inst:`Gere **.docx de resumo executivo**:\n- Cronologia dos atos processuais\n- Objeto e tese de cada parte\n- Documentos já analisados vs. pendentes\n- Status e próximo passo recomendado`},
+};
+
+function copiarPrompt(){
+  const t=TIPOS[tipo];
+  let cnj,vara,autor,status,pendente,qtd,ultima;
+  if(proc){
+    cnj=proc.cnj;vara=proc.vara;autor=proc.autor;
+    status=proc.status;pendente=proc.pendente;
+    qtd=proc.qtd_notificacoes;ultima=proc.ultima_data;
+  }else{
+    cnj=document.getElementById('m-cnj-input').value.trim();
+    if(!cnj){document.getElementById('m-cnj-input').style.borderColor='#dc3545';setTimeout(()=>document.getElementById('m-cnj-input').style.borderColor='',2000);return;}
+    vara=autor=status=pendente='—';qtd='—';ultima='—';
+  }
+  const pasta=document.getElementById('m-pasta').value.trim();
+  const obs=document.getElementById('m-obs').value.trim();
+  const safe=cnj.replace(/[\/\\:*?"<>|]/g,'-');
+  const destino=tipo==='laudo'||tipo==='quesitos'
+    ?`${pasta}\\laudo_final\\${t.nome.replace(/ /g,'_')}_${safe.substring(0,20)}.docx`
+    :`${pasta}\\trabalho_pericial\\${t.nome.replace(/ /g,'_')}_${safe.substring(0,20)}.docx`;
+
+  const prompt=`## ⚖️ INICIAR PERÍCIA — ${t.nome}
+
+**Processo:** ${cnj}
+**Tribunal/Vara:** ${vara}
+**Requerente:** ${autor}
+**Status:** ${status} | **Pendência:** ${pendente||'—'}
+**Notificações 7d:** ${qtd} (último: ${ultima})${obs?`\n**Contexto:** ${obs}`:''}
+
+---
+### 📁 Estrutura de arquivos
+\`\`\`
+${pasta}\\
+  ├── pecas_processuais\\    ← PDFs/docs baixados do PJe
+  ├── trabalho_pericial\\     ← rascunhos e anotações existentes
+  └── laudo_final\\           ← documento final
+\`\`\`
+Se a pasta não existir, informe quais criar e o que colocar em cada uma.
+
+---
+### 🎮 Tarefa
+${t.inst}
+
+**Execute:**
+1. Liste arquivos em \`${pasta}\` (varrer subpastas)
+2. Leia as peças processuais disponíveis
+3. Verifique rascunhos em \`trabalho_pericial\\\` ℔ aproveite o que já existe
+4. Gere o documento e salve em: \`${destino}\`
+5. Apresente resumo: o que foi encontrado, o que foi gerado, pendências críticas`;
+
+  navigator.clipboard.writeText(prompt).then(()=>{
+    toast('✡ Prompt copiado! Cole no Claude para iniciar.');
+    fecharModal();
+  }).catch(()=>{
+    // fallback: select all in textarea hidden
+    const ta=document.createElement('textarea');
+    ta.value=prompt; ta.style.position='fixed'; ta.style.opacity='0';
+    document.body.appendChild(ta); ta.select(); document.execCommand('copy');
+    document.body.removeChild(ta);
+    toast('✡ Prompt copiado! Cole no Claude.');
+    fecharModal();
+  });
+}
+
+function toast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),3500);
+}
+
+// Inicializar
+window.addEventListener('DOMContentLoaded', carregar);
+    </script>
+</body>
+</html>
